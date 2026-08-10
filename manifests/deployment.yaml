@@ -5,7 +5,7 @@ metadata:
   labels:
     app: cicd-demo
 spec:
-  replicas: 4
+  replicas: 1
   selector:
     matchLabels:
       app: cicd-demo
