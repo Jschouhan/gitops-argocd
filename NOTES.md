@@ -67,14 +67,86 @@ what's declared in Git — and reconciles any difference automatically.
   revert it demonstrates self-healing — the cluster can't drift from Git for
   long even if someone bypasses the GitOps process.
 
-## Suggested narration if recording a video walkthrough
+## Video script (read-aloud, ~3–4 min)
 
-1. Show the ArgoCD dashboard — app is Synced/Healthy.
-2. Open `manifests/deployment.yaml` on GitHub, show current replica count.
-3. Edit it locally, change replicas, commit, push.
-4. Switch to ArgoCD UI, hit Refresh (or wait for auto-sync), show status
-   flip to Syncing then back to Synced, and the new pod appearing.
-5. Run `kubectl get pods` in a terminal to confirm the extra pod exists.
-6. Optionally: run `kubectl scale` manually to break it, show ArgoCD
-   self-heal it back within seconds — this is the strongest visual proof
-   that Git, not the cluster, is authoritative.
+This is written to match a screen recording with roughly one cut per
+paragraph. Swap in your own repo URL/username where noted.
+
+---
+
+**[Scene 1 — ArgoCD dashboard, app tile visible]**
+
+"This is ArgoCD running on a local Minikube cluster. It's watching a GitHub
+repo called `gitops-argocd`, and right now the application `cicd-demo-app`
+shows Healthy and Synced — meaning everything running in the cluster
+matches exactly what's declared in that repo's `manifests` folder."
+
+**[Scene 2 — click into the app, show the resource graph]**
+
+"Here's the resource graph. ArgoCD created a Deployment, which created a
+ReplicaSet, which created the actual Pods, plus a Service to expose them —
+all from a single YAML file I never manually applied with kubectl. I only
+applied one thing myself: the ArgoCD `Application` resource that tells it
+which repo and path to watch."
+
+**[Scene 3 — terminal, run `kubectl get pods`]**
+
+"From the cluster side, `kubectl get pods` confirms two pods running —
+matching `replicas: 2` in the deployment manifest in Git."
+
+**[Scene 4 — GitHub, open `manifests/deployment.yaml`, edit `replicas`]**
+
+"Now here's the actual GitOps loop. Instead of running a kubectl command to
+scale this, I'm going to change the desired state in Git. I'll edit
+`replicas: 2` to `replicas: 3` directly in the manifest, commit, and push."
+
+**[Scene 5 — terminal, `git add` / `git commit` / `git push`]**
+
+"That's it — that's the entire 'deployment' action from my side. No cluster
+credentials needed, just Git write access."
+
+**[Scene 6 — ArgoCD UI, hit Refresh, status flips]**
+
+"Back in ArgoCD, I'll hit Refresh so it doesn't wait for its normal polling
+interval. Watch the status — it goes from Synced to OutOfSync, because it
+detected the repo no longer matches the cluster. Then Syncing, as it
+reconciles the difference. And back to Synced — a third pod has appeared."
+
+**[Scene 7 — terminal, `kubectl get pods` again]**
+
+"Confirmed from the cluster side too — three pods now, and I never touched
+kubectl to make that scaling change happen. Git was the only thing I
+edited."
+
+**[Scene 8 — terminal, `kubectl scale deployment cicd-demo --replicas=1`]**
+
+"Last part — self-healing. I'm going to bypass Git entirely and scale the
+deployment down to one pod directly on the cluster, the old-fashioned way."
+
+**[Scene 9 — terminal, `kubectl get pods`, pause, run again]**
+
+"For a moment it drops to one pod. But because the ArgoCD Application has
+`selfHeal: true` set, it detects that the cluster no longer matches Git's
+declared state of three replicas — and reverts my manual change
+automatically, within seconds. I didn't run any command to fix it; ArgoCD
+did."
+
+**[Scene 10 — ArgoCD UI, show it briefly flashed OutOfSync then back to Synced]**
+
+"And here in the UI you can see that exact moment — it briefly flagged
+OutOfSync from my manual scale command, then self-corrected back to Synced.
+That's the core idea of GitOps: Git is the only authoritative source of
+truth, and the cluster can't drift from it for long, even if someone
+bypasses the process and touches it directly."
+
+---
+
+## Quick reference — what actually happened in this session
+
+- ArgoCD installed on Minikube via the standard install manifest
+- Application `cicd-demo-app` pointed at a GitHub repo's `manifests/` folder
+- Auto-sync + self-heal enabled from the start (`syncPolicy.automated`)
+- Scaling tested two ways: via a Git commit (the intended path) and via a
+  direct `kubectl scale` (to prove drift correction works)
+- Both screenshots and this script can be paired for a submission video, or
+  the script alone can stand in as written notes if no video is required.
