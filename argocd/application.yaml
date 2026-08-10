@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cicd-demo-app
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    # Replace with your actual GitHub repo URL
+    repoURL: https://github.com/jschouhan/gitops-argocd.git
+    targetRevision: main
+    path: manifests
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true       # remove resources that are deleted from Git
+      selfHeal: true     # revert manual cluster changes back to match Git
+    syncOptions:
+      - CreateNamespace=true
